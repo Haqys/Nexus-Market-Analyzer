@@ -891,20 +891,25 @@ app.get('/api/health', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════
 // ── Start Server ───────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
-app.listen(PORT, () => {
-    console.log(`
-╔══════════════════════════════════════════════════════════╗
-║  🚀 Market Intelligence Server                          ║
-║  Running on http://localhost:${PORT}                       ║
-║  eBay API: ${EBAY_CLIENT_ID ? '✅ Credentials loaded' : '❌ Missing credentials'}                    ║
-║  DeepSeek AI: ${DEEPSEEK_API_KEY ? '✅ API key loaded' : '❌ Missing API key'}                       ║
-║                                                          ║
-║  Features:                                               ║
-║  • Auto-retry on eBay API errors (3 attempts)            ║
-║  • Token auto-refresh on 401 Unauthorized                ║
-║  • Request timeout protection (20s)                      ║
-║  • Rate-limit backoff between paginated requests         ║
-║  • Exponential backoff on server errors                  ║
-╚══════════════════════════════════════════════════════════╝
-    `);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`
+    ╔══════════════════════════════════════════════════════════╗
+    ║  🚀 Market Intelligence Server                          ║
+    ║  Running on http://localhost:${PORT}                       ║
+    ║  eBay API: ${EBAY_CLIENT_ID ? '✅ Credentials loaded' : '❌ Missing credentials'}                    ║
+    ║  DeepSeek AI: ${DEEPSEEK_API_KEY ? '✅ API key loaded' : '❌ Missing API key'}                       ║
+    ║                                                          ║
+    ║  Features:                                               ║
+    ║  • Auto-retry on eBay API errors (3 attempts)            ║
+    ║  • Token auto-refresh on 401 Unauthorized                ║
+    ║  • Request timeout protection (20s)                      ║
+    ║  • Rate-limit backoff between paginated requests         ║
+    ║  • Exponential backoff on server errors                  ║
+    ╚══════════════════════════════════════════════════════════╝
+        `);
+    });
+}
+
+// Export the Express API for Vercel
+module.exports = app;

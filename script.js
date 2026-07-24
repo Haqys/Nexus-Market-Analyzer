@@ -1,3 +1,22 @@
+// Import fungsi Firebase menggunakan URL CDN
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+
+// Konfigurasi Firebase dari akunmu
+const firebaseConfig = {
+  apiKey: "AIzaSyB9Ff_mmFwPOBULWFrCUtax1e5dCYLP2Cw",
+  authDomain: "nexus-market-analyzer.firebaseapp.com",
+  projectId: "nexus-market-analyzer",
+  storageBucket: "nexus-market-analyzer.firebasestorage.app",
+  messagingSenderId: "143774736470",
+  appId: "1:143774736470:web:2ca90fe9c23c2d34399bf7",
+  measurementId: "G-6KE154Z0RE"
+};
+
+// Inisialisasi Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
 // ── Theme Toggle Logic ──────────────────────────────────────────────
 const themeToggleBtn = document.getElementById('theme-toggle');
 const body = document.body;
