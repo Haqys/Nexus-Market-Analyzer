@@ -1,6 +1,7 @@
 // Import fungsi Firebase menggunakan URL CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // Konfigurasi Firebase dari akunmu
 const firebaseConfig = {
@@ -16,6 +17,9 @@ const firebaseConfig = {
 // Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+let idToken = null;
 
 // ── Theme Toggle Logic ──────────────────────────────────────────────
 const themeToggleBtn = document.getElementById('theme-toggle');
@@ -164,12 +168,28 @@ async function fetchAnalytics(query, condition, location) {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
-            const response = await fetch(url, { signal: controller.signal });
+            // Build headers with auth token if available
+            const headers = {};
+            if (idToken) {
+                headers['Authorization'] = `Bearer ${idToken}`;
+            }
+
+            const response = await fetch(url, { signal: controller.signal, headers });
             clearTimeout(timeout);
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
                 const errMsg = err.error || `HTTP ${response.status}`;
+
+                // Handle auth required
+                if (response.status === 401 && errMsg === 'auth_required') {
+                    throw { code: 'auth_required', message: err.message || 'Please log in to continue.' };
+                }
+
+                // Handle free limit reached
+                if (response.status === 403 && errMsg === 'limit_reached') {
+                    throw { code: 'limit_reached', message: err.message || 'Free daily limit reached.' };
+                }
 
                 // Retry on server errors
                 if (response.status >= 500 && attempt < maxRetries - 1) {
@@ -184,6 +204,9 @@ async function fetchAnalytics(query, condition, location) {
             return await response.json();
 
         } catch (err) {
+            // Re-throw our custom error objects
+            if (err.code === 'auth_required' || err.code === 'limit_reached') throw err;
+
             if (err.name === 'AbortError') {
                 throw new Error('Connection timeout. eBay server might be slow, try again.');
             }
@@ -230,9 +253,19 @@ async function runAnalysis() {
         document.getElementById('live-badge').classList.add('visible');
 
     } catch (err) {
-        console.error('Analysis error:', err);
         hideLoading();
-        showError(`Gagal mengambil data: ${err.message}`);
+
+        if (err.code === 'auth_required') {
+            showPaywall('Please log in with Google to use Market Analysis.', true);
+            return;
+        }
+        if (err.code === 'limit_reached') {
+            showPaywall('You have used your 2 free analyzes for today. Upgrade to Pro for unlimited access!');
+            return;
+        }
+
+        console.error('Analysis error:', err);
+        showError(`Failed to fetch data: ${err.message}`);
     }
 }
 
@@ -908,6 +941,106 @@ async function fetchTrending() {
     }
 }
 
+// ── Auth UI Logic ───────────────────────────────────────────────────
+function updateAuthUI(user) {
+    const loginBtn = document.getElementById('login-btn');
+    const userProfile = document.getElementById('user-profile');
+    const userAvatar = document.getElementById('user-avatar');
+
+    if (user) {
+        loginBtn.style.display = 'none';
+        userProfile.style.display = 'flex';
+        userAvatar.src = user.photoURL || '';
+        userAvatar.alt = user.displayName || 'User';
+    } else {
+        loginBtn.style.display = 'flex';
+        userProfile.style.display = 'none';
+    }
+}
+
+async function handleLogin() {
+    try {
+        const result = await signInWithPopup(auth, provider);
+        idToken = await result.user.getIdToken();
+        updateAuthUI(result.user);
+    } catch (err) {
+        if (err.code !== 'auth/popup-closed-by-user') {
+            console.error('Login error:', err);
+            showError('Login failed. Please try again.');
+        }
+    }
+}
+
+async function handleLogout() {
+    try {
+        await signOut(auth);
+        idToken = null;
+        updateAuthUI(null);
+    } catch (err) {
+        console.error('Logout error:', err);
+    }
+}
+
+// Listen for auth state changes
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        idToken = await user.getIdToken();
+        updateAuthUI(user);
+    } else {
+        idToken = null;
+        updateAuthUI(null);
+    }
+});
+
+// ── Paywall Logic ───────────────────────────────────────────────────
+function showPaywall(message, isLoginPrompt = false) {
+    const modal = document.getElementById('paywall-modal');
+    const msgEl = document.getElementById('paywall-message');
+    const subscribeBtn = document.getElementById('subscribe-btn');
+
+    msgEl.textContent = message;
+
+    if (isLoginPrompt) {
+        subscribeBtn.textContent = 'Login with Google';
+        subscribeBtn.onclick = async () => {
+            closePaywall();
+            await handleLogin();
+        };
+    } else {
+        subscribeBtn.textContent = 'Subscribe Now ($19/mo)';
+        subscribeBtn.onclick = handleSubscribe;
+    }
+
+    modal.style.display = 'flex';
+    lucide.createIcons();
+}
+
+function closePaywall() {
+    document.getElementById('paywall-modal').style.display = 'none';
+}
+
+async function handleSubscribe() {
+    if (!idToken) {
+        showError('Please log in first.');
+        return;
+    }
+    try {
+        const res = await fetch(`${API_BASE}/api/checkout`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            showError(data.error || 'Failed to create checkout session.');
+        }
+    } catch (err) {
+        console.error('Checkout error:', err);
+        showError('Failed to start checkout. Try again.');
+    }
+}
+
 // ── Event Listeners ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     initEmptyCharts();
@@ -921,8 +1054,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') runAnalysis();
     });
 
+    // Login / Logout buttons
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+    // Paywall close button
+    document.getElementById('close-paywall-btn').addEventListener('click', closePaywall);
+
     // Load trending items from backend
     fetchTrending();
+
+    // Handle Stripe success redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+        showError('\u2705 Subscription successful! You now have Pro access.');
+        window.history.replaceState({}, '', '/');
+    }
+    if (urlParams.get('canceled') === 'true') {
+        showError('Payment canceled.');
+        window.history.replaceState({}, '', '/');
+    }
 });
 
 // Handle window resize for charts

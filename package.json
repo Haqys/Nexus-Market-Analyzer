@@ -12,6 +12,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase": "^12.16.0",
-    "google-trends-api": "^4.9.2"
+    "firebase-admin": "^14.4.0",
+    "google-trends-api": "^4.9.2",
+    "stripe": "^22.6.2"
   }
 }

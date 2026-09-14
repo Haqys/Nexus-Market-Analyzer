@@ -3,9 +3,29 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const googleTrends = require('google-trends-api');
+const admin = require('firebase-admin');
+const Stripe = require('stripe');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_123'); // Fallback for dev
+
+let db;
+try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        db = admin.firestore();
+        console.log('✅ Firebase Admin initialized');
+    } else {
+        console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT missing. Auth & DB limits disabled.');
+    }
+} catch(e) {
+    console.error('❌ Firebase admin init error:', e.message);
+}
 
 // eBay credentials
 const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID;
@@ -16,7 +36,13 @@ const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buf) => {
+        if (req.originalUrl.startsWith('/api/webhook')) {
+            req.rawBody = buf.toString();
+        }
+    }
+}));
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname)));
@@ -783,11 +809,76 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
+// Middleware to verify Firebase token
+async function authMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        req.user = null;
+        return next();
+    }
+    const token = authHeader.split('Bearer ')[1];
+    try {
+        if (db) {
+             const decodedToken = await admin.auth().verifyIdToken(token);
+             req.user = decodedToken;
+        } else {
+             req.user = null;
+        }
+    } catch (error) {
+        req.user = null;
+    }
+    next();
+}
+
 // GET /api/stats — Processed analytics for the dashboard
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', authMiddleware, async (req, res) => {
     try {
         const { q, condition, location } = req.query;
         if (!q) return res.status(400).json({ error: 'Query parameter "q" is required' });
+
+        // --- Limit checking logic ---
+        if (db) {
+            if (!req.user) {
+                return res.status(401).json({ error: 'auth_required', message: 'You must log in to use the Market Intelligence tool.' });
+            }
+            
+            const userRef = db.collection('users').doc(req.user.uid);
+            const doc = await userRef.get();
+            const today = new Date().toISOString().split('T')[0];
+            
+            let hasAccess = false;
+            
+            if (!doc.exists) {
+                await userRef.set({ 
+                    email: req.user.email,
+                    analyzeCount: 1, 
+                    lastAnalyzeDate: today, 
+                    isPro: false 
+                });
+                hasAccess = true;
+            } else {
+                const userData = doc.data();
+                if (userData.isPro) {
+                    hasAccess = true;
+                } else {
+                    let count = userData.analyzeCount || 0;
+                    if (userData.lastAnalyzeDate !== today) {
+                        count = 0;
+                    }
+                    if (count < 2) {
+                        hasAccess = true;
+                        await userRef.update({ analyzeCount: count + 1, lastAnalyzeDate: today });
+                    } else {
+                        hasAccess = false;
+                    }
+                }
+            }
+            
+            if (!hasAccess) {
+                return res.status(403).json({ error: 'limit_reached', message: 'Free daily limit (2x) reached. Please upgrade to Pro.' });
+            }
+        }
+        // -----------------------------
 
         console.log(`\n${'═'.repeat(60)}`);
         console.log(`📊 NEW ANALYSIS: "${q}" (condition: ${condition || 'all'}, location: ${location || 'global'})`);
@@ -924,6 +1015,67 @@ app.get('/api/health', async (req, res) => {
         ebayReachable,
         uptime: process.uptime()
     });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── Stripe Payments ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+app.post('/api/checkout', authMiddleware, async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'auth_required', message: 'Please log in' });
+    
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'subscription',
+            customer_email: req.user.email,
+            client_reference_id: req.user.uid,
+            line_items: [{
+                // You must replace this with your actual Stripe Price ID
+                price: process.env.STRIPE_PRICE_ID || 'price_dummy',
+                quantity: 1,
+            }],
+            success_url: `${req.headers.origin || 'http://localhost:3000'}?success=true`,
+            cancel_url: `${req.headers.origin || 'http://localhost:3000'}?canceled=true`,
+        });
+        res.json({ url: session.url });
+    } catch (e) {
+        console.error('Stripe checkout error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/webhook', async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error('Webhook Error:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const userId = session.client_reference_id;
+        if (userId && db) {
+            await db.collection('users').doc(userId).update({ isPro: true, stripeCustomerId: session.customer });
+            console.log(`✅ User ${userId} upgraded to PRO!`);
+        }
+    }
+    
+    if (event.type === 'customer.subscription.deleted') {
+        const subscription = event.data.object;
+        if (db) {
+            const users = await db.collection('users').where('stripeCustomerId', '==', subscription.customer).get();
+            users.forEach(async doc => {
+                await doc.ref.update({ isPro: false });
+                console.log(`❌ User ${doc.id} subscription ended.`);
+            });
+        }
+    }
+
+    res.json({received: true});
 });
 
 // ═══════════════════════════════════════════════════════════════════════
