@@ -855,31 +855,32 @@ app.get('/api/stats', async (req, res) => {
 // Trending keywords
 app.get('/api/trending', async (req, res) => {
     try {
-        // Broad popular categories: Cell Phones, Video Games, Smart Watches, Shoes, Cameras
-        const categories = ['9355', '139971', '175971', '15709', '2408'];
-        // Pick 2 random categories
-        const selected = categories.sort(() => 0.5 - Math.random()).slice(0, 2);
+        // Broad popular search queries to simulate trending products
+        const broadQueries = ['iphone', 'laptop', 'nike', 'watch', 'camera', 'pokemon', 'lego', 'vintage', 'ssd', 'headphone', 'playstation', 'xbox', 'sneakers'];
+        
+        // Pick 2 random queries
+        const selected = broadQueries.sort(() => 0.5 - Math.random()).slice(0, 2);
         
         let trendingWords = [];
-        for (const cat of selected) {
-            const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?category_ids=${cat}&limit=10&sort=-newlyListed`;
+        for (const query of selected) {
+            const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${query}&limit=10&sort=-newlyListed`;
             const data = await ebayFetch(url, { marketplace: 'EBAY_US' });
             if (data.itemSummaries) {
                 const titles = data.itemSummaries.map(i => {
-                    // Get first 2-3 significant words
-                    const words = i.title.split(' ').slice(0, 3).join(' ').replace(/[^a-zA-Z0-9\s]/g, '');
+                    // Extract 3-4 significant words from the title for a clean tag
+                    const words = i.title.split(' ').slice(0, 4).join(' ').replace(/[^a-zA-Z0-9\\s]/g, '').trim();
                     return words;
                 });
                 trendingWords.push(...titles);
             }
         }
         
-        // Return 5 random trending titles
+        // Filter out short words and return 5 random unique titles
         const unique = [...new Set(trendingWords)].filter(w => w.length > 5);
         const top5 = unique.sort(() => 0.5 - Math.random()).slice(0, 5);
         
         if (top5.length === 0) {
-            top5.push('iPhone 15', 'Pokemon Cards', 'Rolex Submariner', 'Sony A7IV', 'Nike Air Jordan');
+            top5.push('iPhone 15 Pro', 'Pokemon Booster Box', 'Vintage Rolex', 'Sony A7IV Camera', 'Nike Air Jordan 1');
         }
         
         res.json({ trending: top5 });
