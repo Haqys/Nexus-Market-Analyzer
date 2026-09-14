@@ -532,7 +532,7 @@ function processAnalytics(items, query) {
     const priceVsAvg = ((optimalPrice - avgPrice) / avgPrice * 100).toFixed(1);
 
     // Sample items (top 30 by relevance)
-    const sampleItems = items.slice(0, 30).map(item => ({
+    const sampleItems = items.slice(0, 32).map(item => ({
         title: item.title,
         price: item.price ? `${item.price.currency} ${item.price.value}` : 'N/A',
         condition: item.condition || 'N/A',
