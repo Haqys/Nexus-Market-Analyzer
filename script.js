@@ -665,7 +665,7 @@ function updateGeography(geoData) {
     // Update alert based on top location
     const topRegion = geoData[0];
     geoAlert.className = 'alert-box info';
-    geoAlert.innerHTML = `<i data-lucide="info"></i><span>Largest region (Sellers): ${topRegion.region} (${topRegion.percentage}% dari total listing).</span>`;
+    geoAlert.innerHTML = `<i data-lucide="info"></i><span>Largest region (Sellers): ${topRegion.region} (${topRegion.percentage}% of total listings).</span>`;
 }
 
 function updateDemandGeography(geoData) {
@@ -689,7 +689,7 @@ function updateDemandGeography(geoData) {
 
     const topRegion = geoData[0];
     geoAlert.className = 'alert-box positive';
-    geoAlert.innerHTML = `<i data-lucide="search"></i><span>Highest demand comes from: ${topRegion.region}. Targetkan iklan (Ads) ke negara ini.</span>`;
+    geoAlert.innerHTML = `<i data-lucide="search"></i><span>Highest demand comes from: ${topRegion.region}. Target ads to this country.</span>`;
 }
 
 // ── Update Keywords ─────────────────────────────────────────────────
