@@ -267,7 +267,7 @@ async function searchEbayMultiPage(query, options = {}, maxPages = 3) {
 
             // If first page fails, throw to notify frontend — the query itself might be broken
             if (page === 0) {
-                throw new Error(`Gagal mengambil data dari eBay: ${err.message}`);
+                throw new Error(`Failed to fetch data from eBay: ${err.message}`);
             }
 
             // For subsequent pages, log and continue with what we have
@@ -605,46 +605,46 @@ async function generateAIAnalysis(analytics, query) {
 
     // Build a concise data summary for the AI
     const dataSummary = `
-PRODUK: "${query}"
-TOTAL LISTING: ${analytics.totalItems}
-MATAUANG: ${analytics.currency}
+PRODUCT: "${query}"
+TOTAL LISTINGS: ${analytics.totalItems}
+CURRENCY: ${analytics.currency}
 
-HARGA:
-- Rata-rata: ${sym}${analytics.pricing.avg}
+PRICE:
+- Average: ${sym}${analytics.pricing.avg}
 - Median: ${sym}${analytics.pricing.median}
 - Min: ${sym}${analytics.pricing.min}
 - Max: ${sym}${analytics.pricing.max}
-- Distribusi: ${analytics.pricing.distribution.map(b => `${b.label}: ${b.count} listing`).join(', ')}
+- Distribution: ${analytics.pricing.distribution.map(b => `${b.label}: ${b.count} listings`).join(', ')}
 
-KONDISI: ${Object.entries(analytics.conditions).map(([k, v]) => `${k}: ${v}`).join(', ')}
+CONDITIONS: ${Object.entries(analytics.conditions).map(([k, v]) => `${k}: ${v}`).join(', ')}
 
-TIPE LISTING:
+LISTING TYPES:
 - Buy It Now: ${analytics.buyingOptions.bin} (${analytics.buyingOptions.binPercentage}%)
 - Auction: ${analytics.buyingOptions.auction}
 
-PENJUAL:
-- Total unik: ${analytics.sellers.unique}
-- Top sellers: ${analytics.sellers.top.map(s => `${s.name} (${s.count} listing, ${s.percentage}%)`).join(', ')}
-- Rata-rata Feedback Score: ${analytics.barrierMetrics.avgFeedback}
+SELLERS:
+- Total unique: ${analytics.sellers.unique}
+- Top sellers: ${analytics.sellers.top.map(s => `${s.name} (${s.count} listings, ${s.percentage}%)`).join(', ')}
+- Average Feedback Score: ${analytics.barrierMetrics.avgFeedback}
 
-LOKASI: ${analytics.geography.map(g => `${g.region}: ${g.percentage}%`).join(', ')}
+LOCATION: ${analytics.geography.map(g => `${g.region}: ${g.percentage}%`).join(', ')}
 
-KEYWORDS POPULER: ${analytics.keywords.map(k => `"${k.word}" (${k.count}x)`).join(', ')}
+POPULAR KEYWORDS: ${analytics.keywords.map(k => `"${k.word}" (${k.count}x)`).join(', ')}
 
-VARIAN: ${analytics.variants.map(v => `${v.name} (${v.count})`).join(', ')}
+VARIANTS: ${analytics.variants.map(v => `${v.name} (${v.count})`).join(', ')}
 
-LOGISTIK & ONGKIR:
-- Persentase Gratis Ongkir: ${analytics.barrierMetrics.freeShippingPercentage}%
+LOGISTICS & SHIPPING:
+- Free Shipping Percentage: ${analytics.barrierMetrics.freeShippingPercentage}%
 
-MODAL & SATURASI:
-- Estimasi Nilai per Unit: ${sym}${analytics.barrierMetrics.unitCapitalRisk}
-- Listing Baru (7 hari terakhir): ${analytics.barrierMetrics.recentListingsPercentage}%
+CAPITAL & SATURATION:
+- Estimated Value per Unit: ${sym}${analytics.barrierMetrics.unitCapitalRisk}
+- New Listings (last 7 days): ${analytics.barrierMetrics.recentListingsPercentage}%
 `;
 
-    const systemPrompt = `Kamu adalah AI Market Intelligence Analyst yang sangat ahli di eBay marketplace. Kamu menganalisis data pasar dan memberikan rekomendasi yang actionable untuk penjual.
+    const systemPrompt = `You are an expert AI Market Intelligence Analyst specializing in the eBay marketplace. You analyze market data and provide actionable recommendations for sellers.
 
-BAHASA: Use professional English.
-FORMAT: Jawab HANYA dalam format JSON valid berikut, tanpa markdown atau teks tambahan:
+LANGUAGE: Use professional English.
+FORMAT: Answer ONLY in the following valid JSON format, without markdown or additional text:
 
 {
   "optimalPrice": {
@@ -653,7 +653,7 @@ FORMAT: Jawab HANYA dalam format JSON valid berikut, tanpa markdown atau teks ta
   },
   "entryBarrier": {
     "score": <0-100>,
-    "level": "Rendah|Sedang|Tinggi",
+    "level": "Low|Medium|High",
     "description": "<short explanation>"
   },
   "strategies": [

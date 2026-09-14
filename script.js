@@ -89,7 +89,7 @@ function showLoading(query) {
     loadingOverlay.classList.add('active');
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
-    document.getElementById('loading-query').textContent = `Mencari "${query}" di eBay...`;
+    document.getElementById('loading-query').textContent = `Searching for "${query}" on eBay...`;
 
     // Animate loading steps
     const steps = ['step-auth', 'step-fetch', 'step-analyze', 'step-ai'];
@@ -185,7 +185,7 @@ async function fetchAnalytics(query, condition, location) {
 
         } catch (err) {
             if (err.name === 'AbortError') {
-                throw new Error('Koneksi timeout. Server eBay mungkin sedang lambat, coba lagi.');
+                throw new Error('Connection timeout. eBay server might be slow, try again.');
             }
 
             // Retry on network errors
@@ -204,7 +204,7 @@ async function fetchAnalytics(query, condition, location) {
 async function runAnalysis() {
     const query = document.getElementById('search-input').value.trim();
     if (!query) {
-        showError('Masukkan nama produk untuk dianalisis');
+        showError('Enter product name to analyze');
         return;
     }
 
@@ -218,7 +218,7 @@ async function runAnalysis() {
 
         if (data.error || data.totalItems === 0) {
             hideLoading();
-            showError(data.error || 'Tidak ada produk ditemukan. Coba kata kunci lain.');
+            showError(data.error || 'No products found. Try another keyword.');
             return;
         }
 
@@ -257,10 +257,10 @@ function updateDashboard(data, query, location) {
         const priceVsEl = document.getElementById('price-vs-avg');
         if (parseFloat(aiPriceVsAvg) >= 0) {
             priceVsEl.className = 'positive';
-            priceVsEl.innerHTML = `<i data-lucide="trending-up" size="14"></i> +${aiPriceVsAvg}% di atas rata-rata`;
+            priceVsEl.innerHTML = `<i data-lucide="trending-up" size="14"></i> +${aiPriceVsAvg}% above average`;
         } else {
             priceVsEl.className = 'negative';
-            priceVsEl.innerHTML = `<i data-lucide="trending-down" size="14"></i> ${aiPriceVsAvg}% di bawah rata-rata`;
+            priceVsEl.innerHTML = `<i data-lucide="trending-down" size="14"></i> ${aiPriceVsAvg}% below average`;
         }
     } else {
         document.getElementById('optimal-price').textContent = `${sym} ${formatNumber(data.pricing.optimal)}`;
@@ -268,10 +268,10 @@ function updateDashboard(data, query, location) {
         const priceVsEl = document.getElementById('price-vs-avg');
         if (priceVsAvg >= 0) {
             priceVsEl.className = 'positive';
-            priceVsEl.innerHTML = `<i data-lucide="trending-up" size="14"></i> +${priceVsAvg}% di atas rata-rata`;
+            priceVsEl.innerHTML = `<i data-lucide="trending-up" size="14"></i> +${priceVsAvg}% above average`;
         } else {
             priceVsEl.className = 'negative';
-            priceVsEl.innerHTML = `<i data-lucide="trending-down" size="14"></i> ${priceVsAvg}% di bawah rata-rata`;
+            priceVsEl.innerHTML = `<i data-lucide="trending-down" size="14"></i> ${priceVsAvg}% below average`;
         }
         document.getElementById('price-range-info').textContent =
             `Range: ${sym}${formatNumber(data.pricing.min)} — ${sym}${formatNumber(data.pricing.max)}`;
@@ -294,7 +294,7 @@ function updateDashboard(data, query, location) {
         barrierDesc.textContent = data.ai.entryBarrier.description;
     } else {
         const barrier = data.entryBarrier;
-        const level = barrier > 70 ? 'tinggi' : barrier > 40 ? 'sedang' : 'rendah';
+        const level = barrier > 70 ? 'high' : barrier > 40 ? 'medium' : 'low';
         const levelDisplay = barrier > 70 ? 'High' : barrier > 40 ? 'Medium' : 'Low';
         barrierGauge.style.setProperty('--value', barrier);
         barrierGauge.setAttribute('data-level', level);
@@ -302,9 +302,9 @@ function updateDashboard(data, query, location) {
         barrierBadge.textContent = levelDisplay;
         barrierBadge.setAttribute('data-level', level);
         const barrierDescMap = {
-            'tinggi': 'Kompetisi ketat. Dibutuhkan strategi diferensiasi agresif.',
-            'sedang': 'Kompetisi moderat. Diferensiasi listing yang kuat dapat memberi keunggulan.',
-            'rendah': 'Pasar terbuka lebar. Peluang bagus untuk masuk dengan listing berkualitas.'
+            'high': 'Fierce competition. Aggressive differentiation strategy needed.',
+            'medium': 'Moderate competition. Strong listing differentiation can give an edge.',
+            'low': 'Wide open market. Great opportunity to enter with high-quality listings.'
         };
         barrierDesc.textContent = barrierDescMap[level];
     }
@@ -413,39 +413,39 @@ function generateStrategies(data, query, sym) {
     // Price strategy
     if (data.pricing.median < data.pricing.avg) {
         strategies.push({
-            title: 'Price Kompetitif',
-            desc: `Price median (${sym}${formatNumber(data.pricing.median)}) lebih rendah dari rata-rata. Listing di ${sym}${formatNumber(data.pricing.optimal)} memberikan margin optimal.`
+            title: 'Competitive Price',
+            desc: `Median price (${sym}${formatNumber(data.pricing.median)}) is lower than average. Listing at ${sym}${formatNumber(data.pricing.optimal)} gives optimal margin.`
         });
     } else {
         strategies.push({
             title: 'Premium Pricing',
-            desc: `Pasar mendukung harga tinggi. Target ${sym}${formatNumber(data.pricing.optimal)} untuk margin terbaik.`
+            desc: `Market supports high prices. Target ${sym}${formatNumber(data.pricing.optimal)} for best margin.`
         });
     }
 
     // BIN vs Auction
     if (data.buyingOptions.binPercentage > 70) {
         strategies.push({
-            title: 'Gunakan Buy It Now',
-            desc: `${data.buyingOptions.binPercentage}% listing menggunakan BIN. Pembeli di pasar ini lebih suka harga tetap.`
+            title: 'Use Buy It Now',
+            desc: `${data.buyingOptions.binPercentage}% of listings use BIN. Buyers in this market prefer fixed prices.`
         });
     } else {
         strategies.push({
-            title: 'Coba Auction + BIN',
-            desc: `Hanya ${data.buyingOptions.binPercentage}% yang BIN. Auction bisa mendorong harga lebih tinggi melalui bid war.`
+            title: 'Try Auction + BIN',
+            desc: `Only ${data.buyingOptions.binPercentage}% are BIN. Auctions can drive prices higher through bid wars.`
         });
     }
 
     // Competition strategy
     if (data.sellers.unique < 10) {
         strategies.push({
-            title: 'Pasar Niche',
-            desc: `Hanya ${data.sellers.unique} sellers aktif. Kesempatan untuk mendominasi dengan listing berkualitas tinggi.`
+            title: 'Niche Market',
+            desc: `Only ${data.sellers.unique} active sellers. Opportunity to dominate with high-quality listings.`
         });
     } else {
         strategies.push({
-            title: 'Diferensiasi',
-            desc: `${data.sellers.unique} sellers aktif. Fokus pada foto HD, deskripsi detail, dan free shipping untuk menonjol.`
+            title: 'Differentiation',
+            desc: `${data.sellers.unique} active sellers. Focus on HD photos, detailed descriptions, and free shipping to stand out.`
         });
     }
 
@@ -650,7 +650,7 @@ function updateGeography(geoData) {
     const geoAlert = document.getElementById('geo-alert');
 
     if (!geoData || geoData.length === 0) {
-        geoList.innerHTML = '<div class="geo-item"><span class="region">Tidak ada data lokasi</span><div class="progress-bar"><div class="fill" style="width:0%"></div></div><span class="percentage">—</span></div>';
+        geoList.innerHTML = '<div class="geo-item"><span class="region">No location data</span><div class="progress-bar"><div class="fill" style="width:0%"></div></div><span class="percentage">—</span></div>';
         return;
     }
 
@@ -675,7 +675,7 @@ function updateDemandGeography(geoData) {
     if (!geoData || geoData.length === 0) {
         geoList.innerHTML = '<div class="geo-item"><span class="region">No search trend data</span><div class="progress-bar"><div class="fill" style="width:0%"></div></div><span class="percentage">—</span></div>';
         geoAlert.className = 'alert-box warning';
-        geoAlert.innerHTML = `<i data-lucide="alert-triangle"></i><span>Google Trends API tidak mengembalikan data untuk query ini.</span>`;
+        geoAlert.innerHTML = `<i data-lucide="alert-triangle"></i><span>Google Trends API did not return data for this query.</span>`;
         return;
     }
 
@@ -717,14 +717,14 @@ function updateKeywords(keywords, query, aiData) {
             statsEl.innerHTML = `<strong>AI Suggested Title:</strong> "${aiData.titleSuggestion}"`;
         } else {
             const topKw = aiData.keywordsToUse.slice(0, 3).map(k => `"${k}"`).join(', ');
-            statsEl.textContent = `AI recommends: ${topKw}. Gunakan di judul listing untuk visibilitas maksimal.`;
+            statsEl.textContent = `AI recommends: ${topKw}. Use in listing title for maximum visibility.`;
         }
         return;
     }
 
     // Fallback to data-driven keywords
     if (!keywords || keywords.length === 0) {
-        container.innerHTML = '<span class="tag neutral">Tidak cukup data keyword</span>';
+        container.innerHTML = '<span class="tag neutral">Not enough keyword data</span>';
         return;
     }
 
@@ -733,7 +733,7 @@ function updateKeywords(keywords, query, aiData) {
     ).join('');
 
     const topKw = keywords.slice(0, 3).map(k => `"${k.word}"`).join(', ');
-    statsEl.textContent = `Keywords paling sering muncul: ${topKw}. Gunakan di judul listing untuk visibilitas maksimal.`;
+    statsEl.textContent = `Most frequent keywords: ${topKw}. Use in listing title for maximum visibility.`;
 }
 
 // ── Update Sample Items ─────────────────────────────────────────────
@@ -741,7 +741,7 @@ function updateSampleItems(items) {
     const container = document.getElementById('sample-items');
 
     if (!items || items.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-tertiary); grid-column: 1/-1; text-align: center; padding: 24px;">Tidak ada listing ditemukan.</p>';
+        container.innerHTML = '<p style="color: var(--text-tertiary); grid-column: 1/-1; text-align: center; padding: 24px;">No listings found.</p>';
         return;
     }
 
@@ -794,23 +794,23 @@ function updateConclusion(data, query, sym) {
         document.getElementById('conclusion-insights').innerHTML = insightsHtml;
     } else {
         const insights = [];
-        insights.push(`Ditemukan ${data.totalItems} listing aktif untuk "${query}" dengan harga rata-rata ${sym}${formatNumber(data.pricing.avg)}.`);
+        insights.push(`Found ${data.totalItems} active listings for "${query}" with an average price of ${sym}${formatNumber(data.pricing.avg)}.`);
         if (data.buyingOptions.binPercentage > 70) {
-            insights.push(`Mayoritas listing (${data.buyingOptions.binPercentage}%) menggunakan Buy It Now — pasar lebih menyukai harga tetap.`);
+            insights.push(`Majority of listings (${data.buyingOptions.binPercentage}%) use Buy It Now — the market prefers fixed prices.`);
         } else {
-            insights.push(`Mix auction/BIN menunjukkan pasar yang dinamis. Pertimbangkan auction untuk item langka.`);
+            insights.push(`A mix of auction/BIN indicates a dynamic market. Consider auctions for rare items.`);
         }
         if (data.sellers.unique < 15) {
-            insights.push(`Hanya ${data.sellers.unique} sellers unik — pasar ini belum terlalu ramai, peluang bagus.`);
+            insights.push(`Only ${data.sellers.unique} unique sellers — this market is not too crowded, great opportunity.`);
         } else {
-            insights.push(`${data.sellers.unique} sellers aktif menunjukkan pasar yang kompetitif. Diferensiasi adalah kunci.`);
+            insights.push(`${data.sellers.unique} active sellers indicates a competitive market. Differentiation is key.`);
         }
         if (data.geography.length > 0) {
-            insights.push(`Region dominan: ${data.geography[0].region} (${data.geography[0].percentage}%). Sesuaikan shipping dan targeting.`);
+            insights.push(`Dominant region: ${data.geography[0].region} (${data.geography[0].percentage}%). Adjust shipping and targeting.`);
         }
         if (data.keywords.length > 0) {
             const topKws = data.keywords.slice(0, 3).map(k => `"${k.word}"`).join(', ');
-            insights.push(`Keywords utama di listing: ${topKws}. Masukkan ke judul untuk SEO eBay.`);
+            insights.push(`Main keywords in listings: ${topKws}. Include in title for eBay SEO.`);
         }
         document.getElementById('conclusion-insights').innerHTML =
             insights.map(i => `<li>${i}</li>`).join('');
@@ -822,17 +822,17 @@ function updateConclusion(data, query, sym) {
             data.ai.actionPlan.map(a => `<li><strong>${a.day}:</strong> ${a.action}</li>`).join('');
     } else {
         const actions = [];
-        actions.push(`<strong>Hari 1:</strong> Buat listing dengan harga ${sym}${formatNumber(data.pricing.optimal)} dan 12 foto HD.`);
+        actions.push(`<strong>Day 1:</strong> Create a listing priced at ${sym}${formatNumber(data.pricing.optimal)} with 12 HD photos.`);
         if (data.buyingOptions.binPercentage > 60) {
-            actions.push(`<strong>Hari 1:</strong> Gunakan format Buy It Now dengan Best Offer (batas bawah ${sym}${formatNumber(data.pricing.median * 0.9)}).`);
+            actions.push(`<strong>Day 1:</strong> Use Buy It Now with Best Offer (lower limit ${sym}${formatNumber(data.pricing.median * 0.9)}).`);
         } else {
-            actions.push(`<strong>Hari 1:</strong> Mulai dengan Auction starting dari ${sym}${formatNumber(data.pricing.min * 0.8)} untuk menarik bid war.`);
+            actions.push(`<strong>Day 1:</strong> Start an Auction from ${sym}${formatNumber(data.pricing.min * 0.8)} to attract a bid war.`);
         }
-        actions.push(`<strong>Hari 2:</strong> Tawarkan free shipping untuk menarik lebih banyak pembeli (konversi meningkat ~22%).`);
+        actions.push(`<strong>Day 2:</strong> Offer free shipping to attract more buyers (conversion increases ~22%).`);
         if (data.keywords.length > 2) {
-            actions.push(`<strong>Hari 2:</strong> Optimalkan judul dengan keywords: ${data.keywords.slice(0, 3).map(k => k.word).join(', ')}.`);
+            actions.push(`<strong>Day 2:</strong> Optimize title with keywords: ${data.keywords.slice(0, 3).map(k => k.word).join(', ')}.`);
         }
-        actions.push(`<strong>Hari 7:</strong> Evaluasi watchers. Jika rendah, turunkan harga 3-5% atau promote listing.`);
+        actions.push(`<strong>Day 7:</strong> Evaluate watchers. If low, reduce price 3-5% or promote the listing.`);
         document.getElementById('conclusion-actions').innerHTML =
             actions.map(a => `<li>${a}</li>`).join('');
     }

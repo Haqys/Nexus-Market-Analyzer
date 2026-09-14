@@ -613,15 +613,15 @@ body.dark-mode .arc-zone-high {
 
 /* Highlight active zone */
 .barrier-meter[data-level="low"] .arc-zone-low,
-.barrier-meter[data-level="rendah"] .arc-zone-low {
+.barrier-meter[data-level="low"] .arc-zone-low {
     opacity: 1;
 }
 .barrier-meter[data-level="medium"] .arc-zone-mid,
-.barrier-meter[data-level="sedang"] .arc-zone-mid {
+.barrier-meter[data-level="medium"] .arc-zone-mid {
     opacity: 1;
 }
 .barrier-meter[data-level="high"] .arc-zone-high,
-.barrier-meter[data-level="tinggi"] .arc-zone-high {
+.barrier-meter[data-level="high"] .arc-zone-high {
     opacity: 1;
 }
 
@@ -688,28 +688,28 @@ body.dark-mode .arc-zone-high {
 }
 
 .barrier-level-badge[data-level="low"],
-.barrier-level-badge[data-level="rendah"] {
+.barrier-level-badge[data-level="low"] {
     background-color: var(--accent-positive-bg);
     color: var(--accent-positive);
     border-color: var(--accent-positive);
 }
 
 .barrier-level-badge[data-level="medium"],
-.barrier-level-badge[data-level="sedang"] {
+.barrier-level-badge[data-level="medium"] {
     background-color: #fff3e0;
     color: #e67700;
     border-color: #e67700;
 }
 
 body.dark-mode .barrier-level-badge[data-level="medium"],
-body.dark-mode .barrier-level-badge[data-level="sedang"] {
+body.dark-mode .barrier-level-badge[data-level="medium"] {
     background-color: #2b2100;
     color: #ffd43b;
     border-color: #e67700;
 }
 
 .barrier-level-badge[data-level="high"],
-.barrier-level-badge[data-level="tinggi"] {
+.barrier-level-badge[data-level="high"] {
     background-color: var(--accent-negative-bg);
     color: var(--accent-negative);
     border-color: var(--accent-negative);
@@ -743,21 +743,21 @@ body.dark-mode .zone-high-label { color: #ff8787; }
 
 /* Highlight active zone label */
 .barrier-meter[data-level="low"] ~ .barrier-zone-labels .zone-low-label,
-.barrier-meter[data-level="rendah"] ~ .barrier-zone-labels .zone-low-label,
+.barrier-meter[data-level="low"] ~ .barrier-zone-labels .zone-low-label,
 .barrier-card[data-level="low"] .zone-low-label,
-.barrier-card[data-level="rendah"] .zone-low-label {
+.barrier-card[data-level="low"] .zone-low-label {
     opacity: 1;
 }
 .barrier-meter[data-level="medium"] ~ .barrier-zone-labels .zone-mid-label,
-.barrier-meter[data-level="sedang"] ~ .barrier-zone-labels .zone-mid-label,
+.barrier-meter[data-level="medium"] ~ .barrier-zone-labels .zone-mid-label,
 .barrier-card[data-level="medium"] .zone-mid-label,
-.barrier-card[data-level="sedang"] .zone-mid-label {
+.barrier-card[data-level="medium"] .zone-mid-label {
     opacity: 1;
 }
 .barrier-meter[data-level="high"] ~ .barrier-zone-labels .zone-high-label,
-.barrier-meter[data-level="tinggi"] ~ .barrier-zone-labels .zone-high-label,
+.barrier-meter[data-level="high"] ~ .barrier-zone-labels .zone-high-label,
 .barrier-card[data-level="high"] .zone-high-label,
-.barrier-card[data-level="tinggi"] .zone-high-label {
+.barrier-card[data-level="high"] .zone-high-label {
     opacity: 1;
 }
 
