@@ -852,6 +852,43 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
+// Trending keywords
+app.get('/api/trending', async (req, res) => {
+    try {
+        // Broad popular categories: Cell Phones, Video Games, Smart Watches, Shoes, Cameras
+        const categories = ['9355', '139971', '175971', '15709', '2408'];
+        // Pick 2 random categories
+        const selected = categories.sort(() => 0.5 - Math.random()).slice(0, 2);
+        
+        let trendingWords = [];
+        for (const cat of selected) {
+            const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?category_ids=${cat}&limit=10&sort=-newlyListed`;
+            const data = await ebayFetch(url, { marketplace: 'EBAY_US' });
+            if (data.itemSummaries) {
+                const titles = data.itemSummaries.map(i => {
+                    // Get first 2-3 significant words
+                    const words = i.title.split(' ').slice(0, 3).join(' ').replace(/[^a-zA-Z0-9\s]/g, '');
+                    return words;
+                });
+                trendingWords.push(...titles);
+            }
+        }
+        
+        // Return 5 random trending titles
+        const unique = [...new Set(trendingWords)].filter(w => w.length > 5);
+        const top5 = unique.sort(() => 0.5 - Math.random()).slice(0, 5);
+        
+        if (top5.length === 0) {
+            top5.push('iPhone 15', 'Pokemon Cards', 'Rolex Submariner', 'Sony A7IV', 'Nike Air Jordan');
+        }
+        
+        res.json({ trending: top5 });
+    } catch (err) {
+        console.error('❌ Trending error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Health check
 app.get('/api/health', async (req, res) => {
     let tokenStatus = 'no_token';

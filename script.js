@@ -879,6 +879,35 @@ function generateHeatmap(aiTimingData = null) {
     });
 }
 
+// ── Fetch Trending ──────────────────────────────────────────────────
+async function fetchTrending() {
+    try {
+        const container = document.getElementById('quick-suggestions');
+        // Optional: show loading state on pills
+        // container.innerHTML = `<span class="suggestion-label"><i data-lucide="trending-up" style="width:14px;height:14px"></i> Loading trends...</span>`;
+        
+        const response = await fetch('/api/trending');
+        const data = await response.json();
+        
+        if (data.trending && data.trending.length > 0) {
+            container.innerHTML = `<span class="suggestion-label"><i data-lucide="trending-up" style="width:14px;height:14px"></i> Trending:</span>\n` +
+                data.trending.map(t => `<span class="pill-tag">${t}</span>`).join('\n');
+            
+            lucide.createIcons();
+            
+            // Re-attach listeners
+            container.querySelectorAll('.pill-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    document.getElementById('search-input').value = this.textContent;
+                    runAnalysis();
+                });
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load trending items:', err);
+    }
+}
+
 // ── Event Listeners ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     initEmptyCharts();
@@ -892,13 +921,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') runAnalysis();
     });
 
-    // Pill tag click interaction
-    document.querySelectorAll('.pill-tag').forEach(tag => {
-        tag.addEventListener('click', function() {
-            document.getElementById('search-input').value = this.textContent;
-            runAnalysis();
-        });
-    });
+    // Load trending items from backend
+    fetchTrending();
 });
 
 // Handle window resize for charts
